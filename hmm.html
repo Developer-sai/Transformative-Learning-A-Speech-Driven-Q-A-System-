@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLP Q&A</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #222;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1, h2 {
+            color: #61dafb;
+            text-align: center;
+        }
+
+        /* Form Styles */
+        input[type="text"], button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            box-sizing: border-box;
+            background-color: #444;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        input[type="text"]::placeholder {
+            color: #888;
+        }
+
+        button {
+            background-color: #61dafb;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #4fa3d1;
+        }
+
+        /* Output Styles */
+        #output {
+            background-color: #444;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            min-height: 100px;
+        }
+
+        /* Message Styles */
+        .message {
+            background-color: #28a745;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        /* New Page Button Styles */
+        .new-page-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 20px;
+            background-color: #61dafb;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .new-page-btn:hover {
+            background-color: #4fa3d1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NLP Q&A</h1>
+        <div id="input-container">
+            <input type="text" id="input-box" placeholder="Type your question here" required>
+        </div>
+        <button onclick="retrieveQA()">Retrieve Q&A</button>
+        <div id="output"></div>
+        <button class="new-page-btn" onclick="toggleAddQAFom()">Add New Q&A</button>
+        <div id="add-qa-form" style="display:none;">
+            <h2>Add New Q&A</h2>
+            <input type="text" id="tag" placeholder="Tag" required><br>
+            <input type="text" id="question" placeholder="Question" required><br>
+            <input type="text" id="answer" placeholder="Answer" required><br>
+            <button onclick="addQA()">Add Q&A</button>
+            <div id="add-message" class="message"></div>
+        </div>
+        <!-- Speech Input Button -->
+        <button onclick="startSpeechRecognition()">Start Speech Input</button>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        function retrieveQA() {
+            var question = document.getElementById('input-box').value.toLowerCase(); // Convert input question to lowercase
+            $.ajax({
+                type: 'POST',
+                url: '/retrieve_qa',
+                data: { question: question },
+                success: function(response) {
+                    var outputElement = document.getElementById('output');
+                    outputElement.innerHTML = '';
+                    if (response.answer) {
+                        outputElement.innerHTML = '<div><strong>Answer:</strong> ' + response.answer + '</div>';
+                        // Speak the answer
+                        speak(response.answer);
+                    } else {
+                        outputElement.innerHTML = 'No matching Q&A pair found.';
+                    }
+                }
+            });
+        }
+
+        function addQA() {
+            var tag = document.getElementById('tag').value;
+            var question = document.getElementById('question').value;
+            var answer = document.getElementById('answer').value;
+            $.ajax({
+                type: 'POST',
+                url: '/add_qa',
+                data: { tag: tag, question: question, answer: answer },
+                success: function(response) {
+                    var messageElement = document.querySelector('.message');
+                    messageElement.textContent = response.message;
+                    messageElement.style.display = 'block';
+                    // Clear input fields
+                    document.getElementById('tag').value = '';
+                    document.getElementById('question').value = '';
+                    document.getElementById('answer').value = '';
+                }
+            });
+        }
+
+        function toggleAddQAFom() {
+            var addQAFom = document.getElementById('add-qa-form');
+            if (addQAFom.style.display === 'none') {
+                addQAFom.style.display = 'block';
+            } else {
+                addQAFom.style.display = 'none';
+            }
+        }
+
+        // Function to start speech recognition
+        function startSpeechRecognition() {
+            var recognition = new webkitSpeechRecognition();
+            recognition.lang = "en-US";
+            recognition.onresult = function(event) {
+                var speechResult = event.results[0][0].transcript;
+                document.getElementById('input-box').value = speechResult;
+            }
+            recognition.start();
+        }
+
+        // Function to speak text
+        function speak(text) {
+            var synth = window.speechSynthesis;
+            var utterance = new SpeechSynthesisUtterance(text);
+            synth.speak(utterance);
+        }
+    </script>
+</body>
+</html>
